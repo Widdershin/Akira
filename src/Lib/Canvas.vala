@@ -168,57 +168,91 @@ public class Akira.Lib.Canvas : Goo.Canvas {
 
         double x, y, width, height;
         selected_item.get ("x", out x, "y", out y, "width", out width, "height", out height);
+        double canvas_x, canvas_y;
+        canvas_x = x;
+        canvas_y = y;
+        convert_from_item_space(selected_item, ref canvas_x, ref canvas_y);
 
         var new_height = height;
         var new_width = width;
+
+        var new_delta_x = fix_translation (delta_x, width);
+        var new_delta_y = fix_translation (delta_y, height);
+
+        bool update_x = new_delta_x != 0;
+        bool update_y = new_delta_y != 0;
 
         switch (holding_id) {
             case Nob.NONE: // Moving
                 selected_item.translate (fix_x_position (delta_x, width), fix_y_position (delta_y, height));
                 break;
             case Nob.TOP_LEFT:
-                var new_delta_x = fix_translation (delta_x, width);
-                var new_delta_y = fix_translation (delta_y, height);
                 selected_item.translate (new_delta_x, new_delta_y);
                 new_width = fix_size (width - new_delta_x);
                 new_height = fix_size (height - new_delta_y);
                 break;
             case Nob.TOP_CENTER:
                 new_height = fix_size (height - delta_y);
-                var new_delta_y = fix_translation (delta_y, new_height);
                 if (new_delta_y == 0) {
                     new_height = height;
+                    return false;
                 }
                 selected_item.translate (0, new_delta_y);
                 break;
             case Nob.TOP_RIGHT:
-                var new_delta_x = fix_translation (delta_x, width);
-                var new_delta_y = fix_translation (delta_y, height);
+                update_x = event_x > canvas_x;
+                if (new_delta_x == 0)
+                    if (delta_x > 0 && update_x) {
+                        new_delta_x = delta_x;
+                    }
                 selected_item.translate (0, new_delta_y);
                 new_width = fix_size (width + new_delta_x);
                 new_height = fix_size (height - new_delta_y);
                 break;
             case Nob.RIGHT_CENTER:
-                new_width = fix_size (width + delta_x);
+                update_x = event_x > canvas_x;
+                if (new_delta_x == 0)
+                    if (delta_x > 0 && update_x) {
+                        new_delta_x = delta_x;
+                    } else
+                        break;
+                new_width = fix_size (width + new_delta_x);
                 break;
             case Nob.BOTTOM_RIGHT:
-                var new_delta_x = fix_translation (delta_x, width);
-                var new_delta_y = fix_translation (delta_y, height);
+                update_x = event_x > canvas_x;
+                if (new_delta_x == 0)
+                    if (delta_x > 0 && update_x) {
+                        new_delta_x = delta_x;
+                    }
+                update_y = event_y > canvas_y;
+                if (new_delta_y == 0)
+                    if (delta_y > 0 && update_y) {
+                        new_delta_y = delta_y;
+                    }
                 new_width = fix_size (width + new_delta_x);
                 new_height = fix_size (height + new_delta_y);
                 break;
             case Nob.BOTTOM_CENTER:
-                new_height = fix_size (height + delta_y);
+                update_y = event_y > canvas_y;
+                if (new_delta_y == 0)
+                    if (delta_y > 0 && update_y) {
+                        new_delta_y = delta_y;
+                    } else
+                        break;
+                new_height = fix_size (height + new_delta_y);
                 break;
             case Nob.BOTTOM_LEFT:
-                var new_delta_x = fix_translation (delta_x, width);
-                var new_delta_y = fix_translation (delta_y, height);
+                update_y = event_y > canvas_y;
+                if (new_delta_y == 0)
+                    if (delta_y > 0 && update_y) {
+                        new_delta_y = delta_y;
+                    } else
+                        break;
                 selected_item.translate (new_delta_x, 0);
                 new_width = fix_size (width - new_delta_x);
                 new_height = fix_size (height + new_delta_y);
                 break;
             case Nob.LEFT_CENTER:
-                var new_delta_x = fix_translation (delta_x, width);
                 selected_item.translate (new_delta_x, 0);
                 new_width = fix_size (width - new_delta_x);
                 break;
@@ -244,8 +278,10 @@ public class Akira.Lib.Canvas : Goo.Canvas {
         update_nob_position (selected_item);
         update_select_effect (selected_item);
 
-        canvas_temp_event_x = canvas_event_x;
-        canvas_temp_event_y = canvas_event_y;
+        if (update_x)
+            canvas_temp_event_x = canvas_event_x;
+        if (update_y)
+            canvas_temp_event_y = canvas_event_y;
 
         return true;
     }
